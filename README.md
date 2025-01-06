@@ -80,4 +80,4 @@ psql -h localhost -p 5432 -U postgres -c "notify foo, 'note 4 to foo subscribers
   * Provide an example schema with associated triggers.
 
 ## DONE
-  * Handle SIGSEGV (segmentation violation) on exit. Function closures are accessing data structures and connections when exiting. Use context package to cancel goroutine allowing graceful shutdown.
+  * Handle SIGSEGV (segmentation violation) on exit. Function closures are accessing data structures and connections when exiting. Use context package to cancel goroutine allowing graceful shutdown. [2025.01.06]
