@@ -1,4 +1,4 @@
-module github.com/mbalkanloo/golang-pg-pubsub
+module github.com/mbalkanloo/go-pg-pubsub
 
 go 1.21.0
 
