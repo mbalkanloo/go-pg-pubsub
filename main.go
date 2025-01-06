@@ -20,7 +20,7 @@ func main() {
 	// flags
 	connString := flag.String("conn", "postgresql://postgres@localhost:5432", "db connection string")
 	listenPort := flag.String("port", "80", "listen port")
-	chanString := flag.String("chan", "", "comma-separated list of channels")
+	chanString := flag.String("chan", "", "comma-separated list of postgresql channels (ex. foo,bar)")
 
 	flag.Parse()
 
@@ -43,28 +43,29 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/subscribe/{id}", Subscribe(subscriptions)).Methods("GET")
 	websocketServer := &http.Server{Handler:router,Addr:":" + *listenPort}
-	go websocketServer.ListenAndServe()
+	// wrap ListenAndServe to handle errors
+	go WrapServer(websocketServer)
 
 	// handle signals by closing websocket connections and exiting
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go HandleSignal(sig, subscriptions)
+	go HandleSignal(sig, db, subscriptions)
 
 	// publish notifications received from channel
 	log.Println("publishing notifications")
 	PublishNotifications(notifications, subscriptions)
 }
 
-func ListenForNotifications(conn *pgx.Conn, channels []string, pub chan *pgconn.Notification) {
+func ListenForNotifications(db *pgx.Conn, channels []string, pub chan *pgconn.Notification) {
 	for _, channel := range channels {
 		log.Println("listening for notifications on channel", channel)
-		_, err := conn.Exec(context.Background(), "listen " + channel)
+		_, err := db.Exec(context.Background(), "listen " + channel)
 		if err != nil {
 			log.Panic(err)
 		}
 	}
 	for {
-		note, err := conn.WaitForNotification(context.Background())
+		note, err := db.WaitForNotification(context.Background())
 		if err != nil {
 			log.Println(err)
 		}
@@ -72,9 +73,18 @@ func ListenForNotifications(conn *pgx.Conn, channels []string, pub chan *pgconn.
 	}
 }
 
+func WrapServer(websocketServer *http.Server) {
+	log.Println("listening for requests on", websocketServer.Addr)
+	err := websocketServer.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 func Subscribe(subscriptions map[string][]*websocket.Conn) func(http.ResponseWriter, *http.Request) {
 	upgrader := websocket.Upgrader{}
 	return func(w http.ResponseWriter, r *http.Request){
+		// NOTE go1.22 support https://pkg.go.dev/net/http#Request.PathValue
 		vars := mux.Vars(r)
 		id := vars["id"]
 		_, ok := subscriptions[id]
@@ -90,13 +100,18 @@ func Subscribe(subscriptions map[string][]*websocket.Conn) func(http.ResponseWri
 	}
 }
 
-func HandleSignal(sig chan os.Signal, subscriptions map[string][]*websocket.Conn){
+func HandleSignal(sig chan os.Signal, db *pgx.Conn, subscriptions map[string][]*websocket.Conn){
 	s := <-sig
 	log.Println("received signal", s)
+	log.Println("closing database connection")
+	err := db.Close(context.Background())
+	if err != nil {
+		log.Println(err)
+	}
 	log.Println("closing subscription connections")
 	for _, conns := range subscriptions {
 		for _, conn := range conns {
-			err := conn.Close()
+			err = conn.Close()
 			if err != nil {
 				log.Println(err)
 			}
@@ -122,11 +137,4 @@ func PublishNotifications(notifications chan *pgconn.Notification, subscriptions
 			}
 		}
 	}
-}
-
-// TODO define a Notification type
-// TODO allow sibscriptions by ID (ex. client ID)
-type Notification struct {
-	ID string `json:"id"`
-	Payload string `json:"payload"`
 }
