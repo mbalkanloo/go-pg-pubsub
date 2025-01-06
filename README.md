@@ -2,6 +2,8 @@
 
 A server, written in Go, that listens for PostgreSQL notifications and publishes to subscribers over websockets.
 
+Primary use case is to publish notifications on database triggers events.
+
 ## Installation
 
 ```bash
@@ -70,3 +72,7 @@ psql -h localhost -p 5432 -U postgres -c "notify foo, 'note 4 to foo subscribers
 ![Alt text](doc/img/example_clients.png "Example Client Sessions")
 
 ## TODO
+  * Define a Notification type with an ID attribute representing a client ID.
+  * Only send notifications the client is interested in via the ID attribute.
+  * Allow clients to subscribe to all channels for their specific client ID.
+
