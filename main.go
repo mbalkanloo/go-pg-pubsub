@@ -30,7 +30,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close(context.Background())
 
 	// listen for notifications
 	// communicate notifications via channel
@@ -47,14 +46,15 @@ func main() {
 	go WrapServer(websocketServer)
 
 	// handle signals by closing websocket connections and exiting
+	ctx, cancel := context.WithCancel(context.Background())
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	go HandleSignal(sig, db, subscriptions)
+	go HandleSignal(sig, db, subscriptions, cancel)
 
 	// publish notifications received from channel
 	log.Println("publishing notifications")
 	// TODO handle SIGSEGV (segmentation violation) on exit
-	PublishNotifications(notifications, subscriptions)
+	PublishNotifications(notifications, subscriptions, ctx)
 }
 
 func ListenForNotifications(db *pgx.Conn, channels []string, pub chan *pgconn.Notification) {
@@ -101,40 +101,46 @@ func Subscribe(subscriptions map[string][]*websocket.Conn) func(http.ResponseWri
 	}
 }
 
-func HandleSignal(sig chan os.Signal, db *pgx.Conn, subscriptions map[string][]*websocket.Conn) {
+func HandleSignal(sig chan os.Signal, db *pgx.Conn, subscriptions map[string][]*websocket.Conn, cancel context.CancelFunc) {
 	s := <-sig
 	log.Println("received signal", s)
+	log.Println("cancelling goroutines")
+	cancel()
 	log.Println("closing database connection")
 	err := db.Close(context.Background())
 	if err != nil {
 		log.Println(err)
 	}
-	log.Println("closing subscription connections")
-	for _, conns := range subscriptions {
-		for _, conn := range conns {
-			err = conn.Close()
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
 	os.Exit(0)
 }
 
-func PublishNotifications(notifications chan *pgconn.Notification, subscriptions map[string][]*websocket.Conn) {
+func PublishNotifications(notifications chan *pgconn.Notification, subscriptions map[string][]*websocket.Conn, ctx context.Context) {
 	for {
-		note := <-notifications
-		conns, ok := subscriptions[note.Channel]
-		if !ok {
-			continue
-		}
-		for i, conn := range conns {
-			err := conn.WriteMessage(1, []byte(note.Payload))
-			if err != nil {
-				// remove connection from subscriptions
-				subs := subscriptions[note.Channel]
-				subs = append(subs[:i], subs[i+1:]...)
-				subscriptions[note.Channel] = subs
+		select {
+		case <-ctx.Done():
+			log.Println("closing websockets")
+			for _, conns := range subscriptions {
+				for _, conn := range conns {
+					err := conn.Close()
+					if err != nil {
+						log.Println(err)
+					}
+				}
+			}
+			return
+		case note := <-notifications:
+			conns, ok := subscriptions[note.Channel]
+			if !ok {
+				continue
+			}
+			for i, conn := range conns {
+				err := conn.WriteMessage(1, []byte(note.Payload))
+				if err != nil {
+					// remove connection from subscriptions
+					subs := subscriptions[note.Channel]
+					subs = append(subs[:i], subs[i+1:]...)
+					subscriptions[note.Channel] = subs
+				}
 			}
 		}
 	}
