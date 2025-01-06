@@ -42,7 +42,7 @@ func main() {
 	subscriptions := make(map[string][]*websocket.Conn)
 	router := mux.NewRouter()
 	router.HandleFunc("/subscribe/{id}", Subscribe(subscriptions)).Methods("GET")
-	websocketServer := &http.Server{Handler:router,Addr:":" + *listenPort}
+	websocketServer := &http.Server{Handler: router, Addr: ":" + *listenPort}
 	// wrap ListenAndServe to handle errors
 	go WrapServer(websocketServer)
 
@@ -60,7 +60,7 @@ func main() {
 func ListenForNotifications(db *pgx.Conn, channels []string, pub chan *pgconn.Notification) {
 	for _, channel := range channels {
 		log.Println("listening for notifications on channel", channel)
-		_, err := db.Exec(context.Background(), "listen " + channel)
+		_, err := db.Exec(context.Background(), "listen "+channel)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -70,7 +70,7 @@ func ListenForNotifications(db *pgx.Conn, channels []string, pub chan *pgconn.No
 		if err != nil {
 			log.Println(err)
 		}
-		pub <-note
+		pub <- note
 	}
 }
 
@@ -84,7 +84,7 @@ func WrapServer(websocketServer *http.Server) {
 
 func Subscribe(subscriptions map[string][]*websocket.Conn) func(http.ResponseWriter, *http.Request) {
 	upgrader := websocket.Upgrader{}
-	return func(w http.ResponseWriter, r *http.Request){
+	return func(w http.ResponseWriter, r *http.Request) {
 		// NOTE go1.22 support https://pkg.go.dev/net/http#Request.PathValue
 		vars := mux.Vars(r)
 		id := vars["id"]
@@ -101,7 +101,7 @@ func Subscribe(subscriptions map[string][]*websocket.Conn) func(http.ResponseWri
 	}
 }
 
-func HandleSignal(sig chan os.Signal, db *pgx.Conn, subscriptions map[string][]*websocket.Conn){
+func HandleSignal(sig chan os.Signal, db *pgx.Conn, subscriptions map[string][]*websocket.Conn) {
 	s := <-sig
 	log.Println("received signal", s)
 	log.Println("closing database connection")
@@ -121,7 +121,7 @@ func HandleSignal(sig chan os.Signal, db *pgx.Conn, subscriptions map[string][]*
 	os.Exit(0)
 }
 
-func PublishNotifications(notifications chan *pgconn.Notification, subscriptions map[string][]*websocket.Conn){
+func PublishNotifications(notifications chan *pgconn.Notification, subscriptions map[string][]*websocket.Conn) {
 	for {
 		note := <-notifications
 		conns, ok := subscriptions[note.Channel]
