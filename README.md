@@ -65,8 +65,8 @@ psql -h localhost -p 5432 -U postgres -c "notify foo, 'note 4 to foo subscribers
 
 ### Screenshots
 
-![Alt text](doc/img/example_server.png "Example Server Sessions")
+![Alt text](doc/img/example_servers.png "Example Server Sessions")
 
-![Alt text](doc/img/example_client.png "Example Client Sessions")
+![Alt text](doc/img/example_clients.png "Example Client Sessions")
 
 ## TODO
