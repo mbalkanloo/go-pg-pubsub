@@ -23,10 +23,50 @@ Usage of go-pg-pubsub:
         listen port (default "80")
 ```
 
+## Example
+
+Assuming PostgreSQL running locally on port 5432 accepting passwordless connections from the postgres user.
+
+Note that the server listens for subscribers on privileged port 80.
+
+### Server session: start the server
 ```bash
-go-pg-pubsub -chan foo,bar -port 8000
+sudo go-pg-pubsub -chan foo,bar
 ```
 
-## Example
+### Subscriber session 1: subscribe to foo
+```bash
+websocat ws://localhost/subscribe/foo
+```
+
+### Subscriber session 2: subscribe to bar
+```bash
+websocat ws://localhost/subscribe/bar
+```
+
+### Subscriber session 3: subscribe to bar
+```bash
+websocat ws://localhost/subscribe/bar
+```
+
+### PostgreSQL session: send notifications
+```bash
+psql -h localhost -p 5432 -U postgres -c "notify foo, 'note 1 to foo subscribers'"
+```
+```bash
+psql -h localhost -p 5432 -U postgres -c "notify bar, 'note 2 to bar subscribers'"
+```
+```bash
+psql -h localhost -p 5432 -U postgres -c "notify bar, 'note 3 to foo subscribers'"
+```
+```bash
+psql -h localhost -p 5432 -U postgres -c "notify foo, 'note 4 to foo subscribers'"
+```
+
+### Screenshots
+
+![Alt text](doc/img/example_server.png "Example Server Sessions")
+
+![Alt text](doc/img/example_client.png "Example Client Sessions")
 
 ## TODO
