@@ -25,6 +25,8 @@ Usage of go-pg-pubsub:
         listen port (default "80")
 ```
 
+Note: database and websocket connections are closed before exiting (via Ctl-C).
+
 ## Example
 
 Assuming PostgreSQL running locally on port 5432 accepting passwordless connections from the postgres user.
