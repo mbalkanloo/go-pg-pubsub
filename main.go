@@ -46,7 +46,8 @@ func main() {
 	// wrap ListenAndServe to handle errors
 	go WrapServer(websocketServer)
 
-	// handle signals by closing websocket connections and exiting
+	// handle signals
+	// close websocket connections and return via context, cancel func
 	ctx, cancel := context.WithCancel(context.Background())
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
@@ -54,7 +55,7 @@ func main() {
 
 	// publish notifications received from channel
 	log.Println("publishing notifications")
-	// TODO handle SIGSEGV (segmentation violation) on exit
+	// handle SIGSEGV (segmentation violation) on exit via context
 	PublishNotifications(notifications, subscriptions, ctx)
 }
 
