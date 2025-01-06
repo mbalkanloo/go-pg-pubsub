@@ -30,6 +30,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close(context.Background())
 
 	// listen for notifications
 	// communicate notifications via channel
@@ -106,12 +107,6 @@ func HandleSignal(sig chan os.Signal, db *pgx.Conn, subscriptions map[string][]*
 	log.Println("received signal", s)
 	log.Println("cancelling goroutines")
 	cancel()
-	log.Println("closing database connection")
-	err := db.Close(context.Background())
-	if err != nil {
-		log.Println(err)
-	}
-	os.Exit(0)
 }
 
 func PublishNotifications(notifications chan *pgconn.Notification, subscriptions map[string][]*websocket.Conn, ctx context.Context) {
