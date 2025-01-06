@@ -53,6 +53,7 @@ func main() {
 
 	// publish notifications received from channel
 	log.Println("publishing notifications")
+	// TODO handle SIGSEGV (segmentation violation) on exit
 	PublishNotifications(notifications, subscriptions)
 }
 

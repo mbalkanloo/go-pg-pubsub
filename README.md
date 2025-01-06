@@ -76,3 +76,4 @@ psql -h localhost -p 5432 -U postgres -c "notify foo, 'note 4 to foo subscribers
   * Only send notifications the client is interested in via the ID attribute.
   * Allow clients to subscribe to all channels for their specific client ID.
   * Provide an example schema with associated triggers.
+  * Handle SIGSEGV (segmentation violation) on exit. Function closures are accessing data structures and connections when exiting.
