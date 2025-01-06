@@ -61,7 +61,7 @@ psql -h localhost -p 5432 -U postgres -c "notify foo, 'note 1 to foo subscribers
 psql -h localhost -p 5432 -U postgres -c "notify bar, 'note 2 to bar subscribers'"
 ```
 ```bash
-psql -h localhost -p 5432 -U postgres -c "notify bar, 'note 3 to foo subscribers'"
+psql -h localhost -p 5432 -U postgres -c "notify bar, 'note 3 to bar subscribers'"
 ```
 ```bash
 psql -h localhost -p 5432 -U postgres -c "notify foo, 'note 4 to foo subscribers'"
