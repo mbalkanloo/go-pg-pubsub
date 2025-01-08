@@ -1,4 +1,4 @@
-# Pub/sub for PostgreSQL notifications
+# THIS REPO IS PART OF AN INTERVIEW ASSIGNMENT<br/><br/>Pub/sub for PostgreSQL notifications
 
 A server, written in Go, that listens for PostgreSQL notifications and publishes to subscribers over websockets.
 
